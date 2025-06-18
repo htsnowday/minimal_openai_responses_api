@@ -21,7 +21,7 @@ const openai = new OpenAI({
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
 
-  const form = formidable({ multiples: true });
+  const form = formidable({ multiples: true, keepExtensions: true });
 
   form.parse(req, async (err, _fields, filesObj) => {
     if (err) return res.status(500).json({ error: "Could not parse form data" });

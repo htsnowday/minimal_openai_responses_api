@@ -1,99 +1,94 @@
-@@
--    <h1>Minimal OpenAI Responses Demo</h1>
-+    <h1>Minimal OpenAI Responses Demo + File Upload</h1>
-
-     <!-- USER QUESTION -->
-@@
-     <button id="sendBtn">Send</button>
-+
-+    <!-- USER FILE UPLOAD  ➜ will be added to the same vector-store that
-+         the Responses API already searches -->
-+    <h3>Optional: add files the assistant can read</h3>
-+    <input id="fileInput" type="file" multiple />
-+    <button id="uploadBtn">Upload</button>
-@@
-     const sendBtn = document.getElementById("sendBtn");
-+    const uploadBtn = document.getElementById("uploadBtn");
-
-     sendBtn.onclick = async () => { …existing code… };
-
-+    /* ---------- NEW: upload selected files ---------- */
-+    uploadBtn.onclick = async () => {
-+      const files = document.getElementById("fileInput").files;
-+      if (!files.length) return alert("Choose at least one file first!");
-+
-+      statusArea.textContent = `Uploading ${files.length} file(s)…`;
-+      try {
-+        const form = new FormData();
-+        [...files].forEach(f => form.append("files", f));
-+
-+        const res = await fetch("/api/upload", { method: "POST", body: form });
-+        const data = await res.json();
-+        if (!res.ok) throw new Error(data.error || "Upload failed");
-+
-+        statusArea.textContent =
-+          `✓ Uploaded! ${data.uploadedIds.length} file(s) added.`;
-+        document.getElementById("fileInput").value = "";
-+      } catch (err) {
-+        statusArea.textContent = err.message;
-+        statusArea.style.color = "red";
-+      }
-+    };
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>OpenAI on Vercel</title>
+  <title>Minimal OpenAI Responses Demo + File Upload</title>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
-    textarea { width: 100%; height: 80px; margin-bottom: .5rem; }
-    pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; }
-    button { padding: .5rem 1rem; }
-    .error { color: #b00; }
+    body { font-family: sans-serif; margin: 2rem auto; max-width: 680px; }
+    textarea { width: 100%; height: 6rem; }
+    button { margin-top: .5rem; padding: .4rem .8rem; }
+    #responseArea, #statusArea { white-space: pre-wrap; margin-top: 1rem; }
+    #statusArea.error { color: red; }
   </style>
 </head>
 <body>
-  <h1>Chat with OpenAI</h1>
-  <textarea id="userInput" placeholder="Type your message…"></textarea><br/>
+  <h1>Minimal OpenAI Responses Demo&nbsp;+&nbsp;File&nbsp;Upload</h1>
+
+  <!-- USER QUESTION -->
+  <h3>Ask a question</h3>
+  <textarea id="questionInput" placeholder="Type your question…"></textarea>
+  <br />
   <button id="sendBtn">Send</button>
-  <h2>Response:</h2>
-  <pre id="responseArea">–</pre>
+
+  <!-- FILE UPLOAD -->
+  <h3>Optional: add files the assistant can read</h3>
+  <input id="fileInput" type="file" multiple />
+  <button id="uploadBtn">Upload</button>
+
+  <!-- STATUS / ANSWER AREAS -->
+  <div id="statusArea"></div>
+  <pre id="responseArea"></pre>
 
   <script>
-    const responseArea = document.getElementById("responseArea");
-    const sendBtn = document.getElementById("sendBtn");
+    const sendBtn   = document.getElementById("sendBtn");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const qInput    = document.getElementById("questionInput");
+    const statusEl  = document.getElementById("statusArea");
+    const respEl    = document.getElementById("responseArea");
 
-    sendBtn.addEventListener("click", async () => {
-      const input = document.getElementById("userInput").value.trim();
-      if (!input) return;
+    /* ------------- SEND QUESTION ------------- */
+    sendBtn.onclick = async () => {
+      const message = qInput.value.trim();
+      if (!message) return;
 
-      // reset and show loading
-      responseArea.textContent = "…thinking…";
-      responseArea.classList.remove("error");
+      statusEl.textContent = "…thinking…";
+      statusEl.classList.remove("error");
+      respEl.textContent = "";
 
       try {
-        const res = await fetch("/api/chat", {
+        const res  = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: input })
+          body: JSON.stringify({ message })
         });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Request failed");
 
-        // If the HTTP status is not in the 200–299 range, grab the error message
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || res.statusText);
-        }
-
-        // Successful; show the assistant's answer
-        const { answer } = await res.json();
-        responseArea.textContent = answer;
-
+        respEl.textContent = data.answer;
+        statusEl.textContent = "";
       } catch (err) {
-        // Show the real error message
-        responseArea.textContent = err.message;
-        responseArea.classList.add("error");
+        statusEl.textContent = err.message;
+        statusEl.classList.add("error");
       }
-    });
+    };
+
+    /* ------------- UPLOAD FILES ------------- */
+    uploadBtn.onclick = async () => {
+      const files = document.getElementById("fileInput").files;
+      if (!files.length) {
+        alert("Choose at least one file first!");
+        return;
+      }
+
+      statusEl.textContent = `Uploading ${files.length} file(s)…`;
+      statusEl.classList.remove("error");
+
+      try {
+        const form = new FormData();
+        [...files].forEach(f => form.append("files", f));
+
+        const res  = await fetch("/api/upload", { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+
+        statusEl.textContent =
+          `✓ Uploaded! ${data.uploadedIds.length} file(s) added to knowledge base.`;
+        document.getElementById("fileInput").value = "";
+      } catch (err) {
+        statusEl.textContent = err.message;
+        statusEl.classList.add("error");
+      }
+    };
   </script>
 </body>
 </html>

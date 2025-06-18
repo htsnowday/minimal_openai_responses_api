@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const response = await openai.responses.create({
       model: "gpt-4o",              // Orchestrator model that can use tools
       input: message,               // single-turn question from the user
-      system_instruction: "You are a helpful assistant.",
+      instruction: "You are a helpful assistant.",
       tools: [
         { type: "file_search", vector_store_ids: [vectorStoreId] }
       ],

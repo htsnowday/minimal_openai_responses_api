@@ -1,3 +1,44 @@
+@@
+-    <h1>Minimal OpenAI Responses Demo</h1>
++    <h1>Minimal OpenAI Responses Demo + File Upload</h1>
+
+     <!-- USER QUESTION -->
+@@
+     <button id="sendBtn">Send</button>
++
++    <!-- USER FILE UPLOAD  ➜ will be added to the same vector-store that
++         the Responses API already searches -->
++    <h3>Optional: add files the assistant can read</h3>
++    <input id="fileInput" type="file" multiple />
++    <button id="uploadBtn">Upload</button>
+@@
+     const sendBtn = document.getElementById("sendBtn");
++    const uploadBtn = document.getElementById("uploadBtn");
+
+     sendBtn.onclick = async () => { …existing code… };
+
++    /* ---------- NEW: upload selected files ---------- */
++    uploadBtn.onclick = async () => {
++      const files = document.getElementById("fileInput").files;
++      if (!files.length) return alert("Choose at least one file first!");
++
++      statusArea.textContent = `Uploading ${files.length} file(s)…`;
++      try {
++        const form = new FormData();
++        [...files].forEach(f => form.append("files", f));
++
++        const res = await fetch("/api/upload", { method: "POST", body: form });
++        const data = await res.json();
++        if (!res.ok) throw new Error(data.error || "Upload failed");
++
++        statusArea.textContent =
++          `✓ Uploaded! ${data.uploadedIds.length} file(s) added.`;
++        document.getElementById("fileInput").value = "";
++      } catch (err) {
++        statusArea.textContent = err.message;
++        statusArea.style.color = "red";
++      }
++    };
 <!DOCTYPE html>
 <html lang="en">
 <head>
